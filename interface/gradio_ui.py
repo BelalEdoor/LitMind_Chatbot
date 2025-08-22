@@ -60,27 +60,60 @@ def summarize_pdf(pdf_file, summarizer):
 # Build Gradio interface
 # -------------------------------
 def build_interface(books_data, summarizer, json_df, summaries_path):
-    with gr.Blocks(theme=gr.themes.Soft()) as demo:
-        gr.Markdown("## 📚 LitMind")
+    # Custom Theme بدون text_color
+    custom_theme = gr.themes.Base().set(
+        body_background_fill="linear-gradient(to right, #e3f2fd, #bbdefb)",   # خلفية هادئة
+        block_background_fill="white",                                       # صناديق بيضاء واضحة
+        block_border_width="0px",
+        block_shadow="0px 4px 15px rgba(0,0,0,0.08)",
+        block_title_text_color="#1a237e",                                    # عنوان غامق أزرق
+        button_primary_background_fill="linear-gradient(to right, #42a5f5, #1e88e5)",  # أزرار رئيسية أزرق متدرج
+        button_primary_text_color="white",
+        button_secondary_background_fill="linear-gradient(to right, #ffb74d, #fb8c00)", # أزرار ثانوية برتقالي متدرج
+        button_secondary_text_color="white",
+    )
 
+    # Custom CSS للتحكم بألوان النصوص
+    custom_css = """
+    .gradio-container {max-width: 1100px; margin: auto; font-family: 'Segoe UI', sans-serif;}
+    .gr-chatbot {background: #fafafa; border: 1px solid #e0e0e0; border-radius: 12px; padding: 10px;}
+    .gr-button {font-weight: 600; border-radius: 8px; padding: 8px 12px;}
+    h1, h2, h3, h4, h5, h6 {color: #1a237e;}
+    p, label, .gr-textbox label, .gr-chatbot label {color: #212121;}
+    """
+
+    with gr.Blocks(theme=custom_theme, css=custom_css) as demo:
+        # Title
+        gr.Markdown("""
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <h1><b>LitMind Chatbot</b></h1>
+        </div>
+        <p>Welcome 👋<br>
+        This chatbot helps you <b>summarize books and PDF files</b> quickly and smartly.</p>
+        """)
+        
         with gr.Row():
-            chatbot_ui = gr.Chatbot(height=420, label="Conversation")
-            state = gr.State([])
+            with gr.Column(scale=3):
+                chatbot_ui = gr.Chatbot(height=500, label="💬 Conversation")
+                state = gr.State([])
 
-        with gr.Row():
-            msg = gr.Textbox(placeholder="Type a message...", scale=5)
-            upload_btn = gr.Button("📂 Choose PDF", variant="secondary", scale=2)
-            pdf_input = gr.File(label="📄 Upload PDF", file_types=[".pdf"], visible=False, scale=2)
-            send = gr.Button("Send", variant="primary", scale=1)
-            clear = gr.Button("🗑️ Clear", variant="secondary", scale=1)
+                with gr.Row():
+                    msg = gr.Textbox(placeholder="✍️ Type your message here...", scale=5)
+                    send = gr.Button("➡️ Send", variant="primary", scale=1)
+                    clear = gr.Button("🗑️ Clear", variant="secondary", scale=1)
 
-        # Show PDF input when button clicked
+            with gr.Column(scale=1):
+                gr.Markdown("### 📄 File Management")
+                upload_btn = gr.Button("📂 Choose PDF", variant="secondary")
+                pdf_input = gr.File(label="📄 Upload PDF", file_types=[".pdf"], visible=False)
+
+        # Toggle upload
         def toggle_upload():
             return gr.update(visible=False), gr.update(visible=True)
 
         upload_btn.click(fn=toggle_upload, inputs=None, outputs=[upload_btn, pdf_input])
 
-        # Handle both chat messages and PDF summaries
+        # Unified handler
         def unified_handler(message, chat_history, pdf_file):
             if pdf_file is not None:
                 summary = summarize_pdf(pdf_file, summarizer)
@@ -96,7 +129,13 @@ def build_interface(books_data, summarizer, json_df, summaries_path):
         msg.submit(fn=unified_handler, inputs=[msg, state, pdf_input], outputs=[msg, chatbot_ui, pdf_input])
         clear.click(fn=clear_chat, outputs=[chatbot_ui, state])
 
+        # Footer
+        gr.Markdown("<hr>")
+        gr.Markdown("<p style='text-align:center;color:#616161'>🚀 Powered by <b>LitMind</b> | Made with ❤️ using HuggingFace & Gradio</p>")
+
     return demo
+
+
 
 # -------------------------------
 # Launch
